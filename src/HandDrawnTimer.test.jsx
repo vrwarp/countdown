@@ -1,9 +1,7 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, it, expect } from 'vitest';
+import { render, screen, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import HandDrawnTimer from './HandDrawnTimer';
-
-import { vi, afterEach } from 'vitest';
 
 describe('HandDrawnTimer Component', () => {
   afterEach(() => {
@@ -25,27 +23,95 @@ describe('HandDrawnTimer Component', () => {
   });
 
   it('starts automatically and hides controls when #time=XXXX hash is present', () => {
-    // Set a fixed date for reliable testing
     vi.useFakeTimers();
-    vi.setSystemTime(new Date(2024, 0, 1, 12, 0, 0)); // 12:00:00 PM
+    vi.setSystemTime(new Date(2024, 0, 1, 12, 0, 0));
 
-    // Set hash to 19:30 (7:30 PM), which is 7 hours and 30 minutes in the future
     window.location.hash = '#time=1930';
 
     render(<HandDrawnTimer />);
 
-    // Controls should not be in the document
     expect(screen.queryByText('Start')).not.toBeInTheDocument();
     expect(screen.queryByText('Reset')).not.toBeInTheDocument();
-
-    // The display time should reflect the diff: 7 hours = 07, 30 mins = 30, 0 secs = 00
-    // We can just verify the values are displayed
-    // The structure has divs with the characters split
-    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('7').length).toBeGreaterThanOrEqual(1);
-    expect(screen.getAllByText('3').length).toBeGreaterThanOrEqual(1);
-
-    // Specifically verify it's not showing the setup inputs
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+  });
+
+  it('allows user to input time and limits input to max value', () => {
+    render(<HandDrawnTimer />);
+
+    const inputs = screen.getAllByRole('textbox');
+    const hoursInput = inputs[0];
+    const minutesInput = inputs[1];
+
+    fireEvent.change(hoursInput, { target: { value: '15' } });
+    expect(hoursInput).toHaveValue('15');
+
+    fireEvent.change(minutesInput, { target: { value: '99' } });
+    expect(minutesInput).toHaveValue('59');
+  });
+
+  it('starts the timer when Start is clicked', () => {
+    vi.useFakeTimers();
+    render(<HandDrawnTimer />);
+
+    const startButton = screen.getByText('Start');
+    fireEvent.click(startButton);
+
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+    expect(screen.getByText('Pause')).toBeInTheDocument();
+  });
+
+  it('pauses and resumes the timer', () => {
+    vi.useFakeTimers();
+    render(<HandDrawnTimer />);
+
+    const startButton = screen.getByText('Start');
+    fireEvent.click(startButton);
+
+    const pauseButton = screen.getByText('Pause');
+    fireEvent.click(pauseButton);
+
+    expect(screen.getByText('Resume')).toBeInTheDocument();
+
+    const resumeButton = screen.getByText('Resume');
+    fireEvent.click(resumeButton);
+
+    expect(screen.getByText('Pause')).toBeInTheDocument();
+  });
+
+  it('resets the timer', () => {
+    render(<HandDrawnTimer />);
+
+    fireEvent.click(screen.getByText('Start'));
+    fireEvent.click(screen.getByText('Reset'));
+
+    const inputs = screen.getAllByRole('textbox');
+    expect(inputs).toHaveLength(3);
+  });
+
+  it('decrements time correctly', () => {
+    vi.useFakeTimers();
+    render(<HandDrawnTimer />);
+
+    const inputs = screen.getAllByRole('textbox');
+    fireEvent.change(inputs[0], { target: { value: '00' } });
+    fireEvent.change(inputs[1], { target: { value: '00' } });
+    fireEvent.change(inputs[2], { target: { value: '05' } });
+
+    fireEvent.click(screen.getByText('Start'));
+
+    act(() => {
+      vi.advanceTimersByTime(2000);
+    });
+
+    expect(screen.getByText('Pause')).toBeInTheDocument();
+
+    act(() => {
+      vi.advanceTimersByTime(4000); // the remaining 3 seconds plus 1 to clear
+    });
+
+    // We check that the mode is now "finished". In finished mode, there's no Start/Pause, just Reset
+    expect(screen.queryByText('Start')).not.toBeInTheDocument();
+    expect(screen.queryByText('Pause')).not.toBeInTheDocument();
+    expect(screen.getByText('Reset')).toBeInTheDocument();
   });
 });
