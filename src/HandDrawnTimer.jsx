@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 
 export default function HandDrawnTimer() {
   const [inputHours, setInputHours] = useState('00');
@@ -8,6 +8,42 @@ export default function HandDrawnTimer() {
   const [remainingTime, setRemainingTime] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState('setup'); // 'setup', 'running', 'paused', 'finished'
+  const [hideControls, setHideControls] = useState(false);
+
+  // Handle URL hash for specific end time (#time=XXXX)
+  useEffect(() => {
+    const handleHash = () => {
+      const hash = window.location.hash;
+      const match = hash.match(/^#time=(\d{2})(\d{2})$/);
+      if (match) {
+        const targetHours = parseInt(match[1], 10);
+        const targetMinutes = parseInt(match[2], 10);
+
+        if (targetHours >= 0 && targetHours < 24 && targetMinutes >= 0 && targetMinutes < 60) {
+          const now = new Date();
+          const target = new Date(now);
+          target.setHours(targetHours, targetMinutes, 0, 0);
+
+          // If the target time has already passed today, it must be for tomorrow
+          if (target <= now) {
+            target.setDate(target.getDate() + 1);
+          }
+
+          const diffSeconds = Math.floor((target.getTime() - now.getTime()) / 1000);
+          setRemainingTime(diffSeconds);
+          setIsRunning(true);
+          setMode('running');
+          setHideControls(true);
+        }
+      }
+    };
+
+    handleHash();
+
+    // Optional: listen to hashchange if we want to support dynamic URL changes
+    window.addEventListener('hashchange', handleHash);
+    return () => window.removeEventListener('hashchange', handleHash);
+  }, []);
 
   // Handle countdown logic
   useEffect(() => {
@@ -215,31 +251,33 @@ export default function HandDrawnTimer() {
       </div>
 
       {/* Controls */}
-      <div className="flex gap-6 font-sketch-ui text-3xl sm:text-4xl">
-        {mode === 'setup' || mode === 'paused' ? (
-          <button
-            onClick={startTimer}
-            className="sketch-border px-8 py-2 hover:bg-black/5"
-          >
-            {mode === 'paused' ? 'Resume' : 'Start'}
-          </button>
-        ) : mode === 'running' ? (
-          <button
-            onClick={pauseTimer}
-            className="sketch-border px-8 py-2 hover:bg-black/5"
-          >
-            Pause
-          </button>
-        ) : null}
+      {!hideControls && (
+        <div className="flex gap-6 font-sketch-ui text-3xl sm:text-4xl">
+          {mode === 'setup' || mode === 'paused' ? (
+            <button
+              onClick={startTimer}
+              className="sketch-border px-8 py-2 hover:bg-black/5"
+            >
+              {mode === 'paused' ? 'Resume' : 'Start'}
+            </button>
+          ) : mode === 'running' ? (
+            <button
+              onClick={pauseTimer}
+              className="sketch-border px-8 py-2 hover:bg-black/5"
+            >
+              Pause
+            </button>
+          ) : null}
 
-        <button
-          onClick={resetTimer}
-          disabled={mode === 'setup' && inputHours === '00' && inputMinutes === '00' && inputSeconds === '00'}
-          className="sketch-border px-8 py-2 hover:bg-black/5"
-        >
-          Reset
-        </button>
-      </div>
+          <button
+            onClick={resetTimer}
+            disabled={mode === 'setup' && inputHours === '00' && inputMinutes === '00' && inputSeconds === '00'}
+            className="sketch-border px-8 py-2 hover:bg-black/5"
+          >
+            Reset
+          </button>
+        </div>
+      )}
 
       {/* Decorative scribbles */}
       <div className="absolute bottom-8 left-8 text-charcoal opacity-50 font-sketch-ui text-2xl transform -rotate-6">
