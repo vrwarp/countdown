@@ -35,6 +35,30 @@ describe('HandDrawnTimer Component', () => {
     expect(screen.queryAllByRole('textbox')).toHaveLength(0);
   });
 
+  it('renders brain rot iframe when #brainrot is in the hash', () => {
+    window.location.hash = '#brainrot';
+    render(<HandDrawnTimer />);
+
+    const iframe = screen.getByTitle('Brain rot content');
+    expect(iframe).toBeInTheDocument();
+    expect(iframe).toHaveAttribute('src', expect.stringContaining('n_Dv4JMiwK8'));
+  });
+
+  it('handles combination of #time and #brainrot in hash', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 0, 1, 12, 0, 0));
+
+    window.location.hash = '#time=1930&brainrot';
+    render(<HandDrawnTimer />);
+
+    expect(screen.queryByText('Start')).not.toBeInTheDocument();
+    expect(screen.queryByText('Reset')).not.toBeInTheDocument();
+    expect(screen.queryAllByRole('textbox')).toHaveLength(0);
+
+    const iframe = screen.getByTitle('Brain rot content');
+    expect(iframe).toBeInTheDocument();
+  });
+
   it('allows user to input time and limits input to max value', () => {
     render(<HandDrawnTimer />);
 

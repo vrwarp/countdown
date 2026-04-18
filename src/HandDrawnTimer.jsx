@@ -9,12 +9,20 @@ export default function HandDrawnTimer() {
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState('setup'); // 'setup', 'running', 'paused', 'finished'
   const [hideControls, setHideControls] = useState(false);
+  const [isBrainRot, setIsBrainRot] = useState(false);
 
-  // Handle URL hash for specific end time (#time=XXXX)
+  // Handle URL hash for specific end time (#time=XXXX) and brain rot mode (#brainrot)
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash;
-      const match = hash.match(/^#time=(\d{2})(\d{2})$/);
+
+      if (hash.includes('brainrot')) {
+        setIsBrainRot(true);
+      } else {
+        setIsBrainRot(false);
+      }
+
+      const match = hash.match(/time=(\d{2})(\d{2})/);
       if (match) {
         const targetHours = parseInt(match[1], 10);
         const targetMinutes = parseInt(match[2], 10);
@@ -114,8 +122,8 @@ export default function HandDrawnTimer() {
     ? { h: inputHours.padStart(2, '0'), m: inputMinutes.padStart(2, '0'), s: inputSeconds.padStart(2, '0') }
     : formatTime(remainingTime);
 
-  return (
-    <div className="min-h-screen flex flex-col items-center justify-center p-4 paper-bg text-charcoal relative overflow-hidden">
+  const timerContent = (
+    <>
       <style dangerouslySetInnerHTML={{__html: `
         @import url('https://fonts.googleapis.com/css2?family=Caveat:wght@400..700&family=Fredericka+the+Great&display=swap');
 
@@ -283,6 +291,31 @@ export default function HandDrawnTimer() {
       <div className="absolute bottom-8 left-8 text-charcoal opacity-50 font-sketch-ui text-2xl transform -rotate-6">
         Time is ticking...
       </div>
+    </>
+  );
+
+  if (isBrainRot) {
+    return (
+      <div className="h-screen flex flex-col w-full">
+        <div className="flex-1 flex flex-col items-center justify-center p-4 paper-bg text-charcoal relative overflow-hidden">
+          {timerContent}
+        </div>
+        <div className="flex-1 w-full bg-black">
+          <iframe
+            className="w-full h-full border-none"
+            src="https://www.youtube.com/embed/n_Dv4JMiwK8?autoplay=1&mute=1&loop=1&playlist=n_Dv4JMiwK8&controls=0"
+            title="Brain rot content"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          ></iframe>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 paper-bg text-charcoal relative overflow-hidden">
+      {timerContent}
     </div>
   );
 }
