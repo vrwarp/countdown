@@ -8,6 +8,7 @@ export default function HandDrawnTimer() {
   const [remainingTime, setRemainingTime] = useState(0);
   const [totalDuration, setTotalDuration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
+  const [isNonlinear, setIsNonlinear] = useState(false);
   const [mode, setMode] = useState('setup'); // 'setup', 'running', 'paused', 'finished'
   const [hideControls, setHideControls] = useState(false);
 
@@ -15,7 +16,11 @@ export default function HandDrawnTimer() {
   useEffect(() => {
     const handleHash = () => {
       const hash = window.location.hash;
-      const match = hash.match(/^#time=(\d{2})(\d{2})$/);
+
+      setIsNonlinear(hash.includes('nonlinear'));
+
+      // Find time match, optionally ignoring other parameters
+      const match = hash.match(/#time=(\d{2})(\d{2})/);
       if (match) {
         const targetHours = parseInt(match[1], 10);
         const targetMinutes = parseInt(match[2], 10);
@@ -114,11 +119,11 @@ export default function HandDrawnTimer() {
     setter(val);
   };
 
-  let nonlinearRemainingTime = totalDuration > 0
+  let nonlinearRemainingTime = (isNonlinear && totalDuration > 0)
     ? Math.round(Math.pow(remainingTime, 2) / totalDuration)
     : remainingTime;
 
-  if (remainingTime > 0 && nonlinearRemainingTime === 0) {
+  if (isNonlinear && remainingTime > 0 && nonlinearRemainingTime === 0) {
     nonlinearRemainingTime = 1;
   }
 
