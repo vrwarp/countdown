@@ -6,6 +6,7 @@ export default function HandDrawnTimer() {
   const [inputSeconds, setInputSeconds] = useState('12');
 
   const [remainingTime, setRemainingTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
   const [isRunning, setIsRunning] = useState(false);
   const [mode, setMode] = useState('setup'); // 'setup', 'running', 'paused', 'finished'
   const [hideControls, setHideControls] = useState(false);
@@ -31,6 +32,7 @@ export default function HandDrawnTimer() {
 
           const diffSeconds = Math.floor((target.getTime() - now.getTime()) / 1000);
           setRemainingTime(diffSeconds);
+          setTotalDuration(diffSeconds);
           setIsRunning(true);
           setMode('running');
           setHideControls(true);
@@ -72,6 +74,7 @@ export default function HandDrawnTimer() {
 
       if (totalSeconds > 0) {
         setRemainingTime(totalSeconds);
+        setTotalDuration(totalSeconds);
         setIsRunning(true);
         setMode('running');
       }
@@ -89,6 +92,7 @@ export default function HandDrawnTimer() {
   const resetTimer = () => {
     setIsRunning(false);
     setRemainingTime(0);
+    setTotalDuration(0);
     setMode('setup');
   };
 
@@ -110,9 +114,17 @@ export default function HandDrawnTimer() {
     setter(val);
   };
 
+  let nonlinearRemainingTime = totalDuration > 0
+    ? Math.round(Math.pow(remainingTime, 2) / totalDuration)
+    : remainingTime;
+
+  if (remainingTime > 0 && nonlinearRemainingTime === 0) {
+    nonlinearRemainingTime = 1;
+  }
+
   const displayTime = mode === 'setup'
     ? { h: inputHours.padStart(2, '0'), m: inputMinutes.padStart(2, '0'), s: inputSeconds.padStart(2, '0') }
-    : formatTime(remainingTime);
+    : formatTime(nonlinearRemainingTime);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-4 paper-bg text-charcoal relative overflow-hidden">
